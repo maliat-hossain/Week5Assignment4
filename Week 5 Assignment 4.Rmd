@@ -1,0 +1,135 @@
+---
+title: "Week 5 Assignment 4"
+author: "Maliat"
+date: "3/6/2021"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+
+### In order to tidy and transforming the given dataset a csv file was created using all the information with a wide structure.The CSV file is stored in GitHub.
+[link] (https://github.com/maliat-hossain/Air-lane-Data-607)
+
+```{r include=FALSE}
+library(tidyverse)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(kableExtra)
+library(magrittr)
+library(rmarkdown)
+library(prettydoc)
+```
+
+```{r}
+library(wesanderson)
+```
+### csv file:
+
+```{r}
+Flight_Information1<-read.csv("https://raw.githubusercontent.com/maliat-hossain/Flight-Information-Dataset/main/Flight%20Information1.csv",sep = ",")
+Flight_Information1
+```
+
+### Column names are added to first columns.Empty cells were filled with the needed value.
+```{r}
+colnames(Flight_Information1)[1:2] <- c("AirlineName","Status") 
+Flight_Information1[[1]][2] <- Flight_Information1[[1]][1] 
+Flight_Information1[[1]][5] <- Flight_Information1[[1]][4] 
+Flight_Information1 %>%
+  knitr::kable(caption = "Table 1:Flight Information Table")%>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+
+```
+### Gather function is implemented to tidy the data.
+
+```{r}
+Flight_Information1 <- gather(Flight_Information1,city,TotalFlights,Los.Angeles:Seattle)
+```
+
+### Airline data has been converted to numeric data to perform analysis,unnecessary punctuation marks were removed to make data more accessible for analysis.
+```{r}
+
+Flight_Information1 <- filter(Flight_Information1,Status!="") 
+i <- 1
+
+while(i <= length(Flight_Information1$city)) {
+  Flight_Information1 $city[i] <- gsub("\\."," ",Flight_Information1 $city[i]) 
+  Flight_Information1$TotalFlights[i] <- gsub(",","",Flight_Information1$TotalFlights[i]) 
+  i <- i + 1
+} 
+
+Flight_Information1$TotalFlights <- as.numeric(Flight_Information1$TotalFlights) 
+
+Flight_Information1 %>%
+  knitr::kable(caption = "Table 2:Flight Information Preparation for Analysis")%>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+
+```
+### The rate of On Time and Delayed flights are calculated. The  comparison of the rate of delay and on time flights bteween two airlines is necessary to quantify their performances. 
+
+
+```{r, results='asis'}
+Flight_Information_Analysis1 <- Flight_Information1 %>% group_by(AirlineName,city) %>% summarise(Total.Airlines1 = sum(TotalFlights)) 
+
+i <- 1
+StatusRate <- vector()
+
+while(i <= length(Flight_Information1$TotalFlights)){ 
+  ap <- Flight_Information1$AirlineName[i]
+  ct <- Flight_Information1$city[i]
+  StatusRate[i] <- round(Flight_Information1$TotalFlights[i]/Flight_Information_Analysis1$Total.Airlines1[Flight_Information_Analysis1$AirlineName==ap & Flight_Information_Analysis1$city == ct],3)
+  i <- i + 1 
+}
+
+Flight_Information1 <- cbind(Flight_Information1,StatusRate)
+
+Flight_Information1%>%
+  knitr::kable(caption = "Table 3:Flight Information Scenario")%>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+```
+### On time flights are extracted
+
+```{r}
+OnTime_Flights1.1<-filter(Flight_Information1,Status =="On Time")
+ OnTime_Flights1.1 %>%
+  knitr::kable(caption = "Table 4:Flight Information Scenario with On Time Flights ")%>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+```
+### Delayed flights are extracted
+```{r}
+Delayed_Flights1.1<-filter(Flight_Information1,Status=="Delayed")
+Delayed_Flights1.1 %>%
+  knitr::kable(caption = "Table 5:Flight Information Scenario with Delayed Flights ")%>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+
+```
+### Graphs for OnTime and Delayed Flights
+```{r}
+ggplot(data=Delayed_Flights1.1, aes(x=city,y=StatusRate,fill=AirlineName)) +
+    scale_fill_manual(values = wes_palette("FantasticFox1",5)[4:5])+
+    geom_bar(stat="identity", position=position_dodge()) +
+    ggtitle(" Analizing Rate of Delay by Airlines and City") +
+    xlab("city") + 
+    ylab("rate") 
+
+```
+
+```{r}
+ggplot(data=OnTime_Flights1.1, aes(x=city,y=StatusRate,fill=AirlineName)) +
+    scale_fill_manual(values = wes_palette("Darjeeling2",5)[1:3])+
+    geom_bar(stat="identity", position=position_dodge()) +
+    ggtitle(" Analizing Rate of OnTime Flights by Airlines and City") +
+    xlab("city") + 
+    ylab("rate") 
+
+```
+
+###   The plot and rate refers that Alaska is performing better than Amwest Airlines. Amwest has a significantly higher delay rate. However the time of the data collected is not disclosed. It can be further analyzed if Amwest delayed its flight on the same day when Alaska airlines flights were on time. Weather can be an attribute to the delay of Amwest's flights. The date needs to be added to understand the data better. However,with the present data it can be referred that technical difficulties such as issues in their engine, or unskilled crews may cause the delay to Amwest Flights. In terms of City Amwest Airlines did not perform well in San Francisco compared to Alaska Airlines.
